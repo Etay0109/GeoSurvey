@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layoutDirection="ltr"
+    android:textDirection="ltr"
+    android:background="#F5F5F0">
+
+    <!-- TOP BAR -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="#F5F5F0"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/tvProgressLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1/2"
+            android:textColor="#888888"
+            android:textSize="14sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Survey"
+            android:textColor="#2979FF"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <ImageButton
+            android:id="@+id/btnClose"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_close"
+            app:tint="#888888"
+            android:contentDescription="Close"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- PROGRESS BAR -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:max="100"
+        android:progress="50"
+        android:progressBackgroundTint="#E0E0E0"
+        android:progressTint="#2979FF"
+        app:layout_constraintTop_toBottomOf="@id/topBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- SCROLLABLE CONTENT -->
+    <ScrollView
+        android:id="@+id/scrollContent"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:scrollbars="none"
+        android:fillViewport="true"
+        android:paddingTop="24dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:clipToPadding="false"
+        app:layout_constraintTop_toBottomOf="@id/progressBar"
+        app:layout_constraintBottom_toTopOf="@id/bottomBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvQuestion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:textColor="#1A1A1A"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:lineSpacingExtra="2dp"
+                tools:text="What type of trip do you prefer?" />
+
+            <LinearLayout
+                android:id="@+id/optionsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- THANK YOU SCREEN -->
+    <LinearLayout
+        android:id="@+id/thankYouContainer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"
+        app:layout_constraintTop_toBottomOf="@id/progressBar"
+        app:layout_constraintBottom_toTopOf="@id/bottomBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <FrameLayout
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_marginBottom="24dp">
+
+            <View
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:background="@drawable/bg_success_circle" />
+
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_check" />
+
+        </FrameLayout>
+
+        <!-- Thank you! -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Thank you!"
+            android:textColor="#1A1A1A"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Your responses were sent successfully.\nThey will help us improve."
+            android:textColor="#888888"
+            android:textSize="15sp"
+            android:gravity="center"
+            android:lineSpacingExtra="4dp" />
+
+    </LinearLayout>
+
+    <!-- BOTTOM BAR -->
+    <LinearLayout
+        android:id="@+id/bottomBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="24dp"
+        android:background="#F5F5F0"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSkip"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:text="Skip"
+            android:textColor="#666666"
+            android:textSize="15sp"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            app:backgroundTint="#E0E0E0"
+            app:cornerRadius="22dp"
+            app:elevation="0dp" />
+
+        <Space
+            android:id="@+id/spacer"
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnNext"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:text="Next"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            app:backgroundTint="#2979FF"
+            app:cornerRadius="22dp"
+            app:elevation="0dp" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

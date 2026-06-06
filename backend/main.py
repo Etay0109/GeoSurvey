@@ -1,0 +1,364 @@
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.orm import Session
+from sqlalchemy import text, func
+
+from database import engine, get_db
+from models import Survey, Question, SurveyOption, Response, EngagementEvent
+from schemas import SurveyCreate, ResponseBatchCreate, SurveyUpdate, EngagementEventCreate
+
+app = FastAPI(title="GeoSurvey API")
+
+
+@app.get("/")
+def root():
+    return {
+        "message": "GeoSurvey API is running"
+    }
+
+
+@app.get("/db-test")
+def db_test():
+    with engine.connect() as connection:
+        result = connection.execute(text("SELECT NOW()"))
+        current_time = result.scalar()
+
+    return {
+        "database": "connected",
+        "time": str(current_time)
+    }
+
+# Creates a new survey with its questions and answer options.
+# stores it in PostgreSQL, and returns the created survey details.
+@app.post("/surveys")
+def create_survey(
+    survey: SurveyCreate,
+    db: Session = Depends(get_db)
+):
+    new_survey = Survey(
+        title=survey.title,
+        status=survey.status
+    )
+
+    for question_index, question in enumerate(survey.questions):
+        new_question = Question(
+            text=question.text,
+            type=question.type,
+            order=question_index
+        )
+
+        for option_index, option in enumerate(question.options):
+            new_option = SurveyOption(
+                text=option.text,
+                order=option_index
+            )
+
+            new_question.options.append(new_option)
+
+        new_survey.questions.append(new_question)
+
+    db.add(new_survey)
+    db.commit()
+    db.refresh(new_survey)
+
+    return {
+        "id": new_survey.id,
+        "title": new_survey.title,
+        "status": new_survey.status,
+        "message": "Survey created successfully"
+    }
+
+# Returns all surveys for the developer portal.
+@app.get("/surveys")
+def get_all_surveys(
+    db: Session = Depends(get_db)
+):
+    surveys = db.query(Survey).all()
+
+    return [
+        {
+            "id": survey.id,
+            "title": survey.title,
+            "status": survey.status,
+            "created_at": survey.created_at
+        }
+        for survey in surveys
+    ]
+
+# This endpoint will be used by the SDK to load and display a survey.
+@app.get("/surveys/{survey_id}")
+def get_survey(
+    survey_id: int,
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+
+    if survey is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Survey not found"
+        )
+
+    if survey.status != "active":
+        raise HTTPException(
+            status_code=403,
+            detail="Survey is not active"
+        )
+
+    return {
+        "id": survey.id,
+        "title": survey.title,
+        "status": survey.status,
+        "questions": [
+            {
+                "id": question.id,
+                "text": question.text,
+                "type": question.type,
+                "order": question.order,
+                "options": [
+                    {
+                        "id": option.id,
+                        "text": option.text,
+                        "order": option.order
+                    }
+                    for option in question.options
+                ]
+            }
+            for question in survey.questions
+        ]
+    }
+
+# Receives a batch of survey responses from the SDK and stores them in the database.
+@app.post("/responses/batch")
+def save_responses(
+    batch: ResponseBatchCreate,
+    db: Session = Depends(get_db)
+):
+    for response in batch.responses:
+        new_response = Response(
+            survey_id=response.survey_id,
+            question_id=response.question_id,
+            option_id=response.option_id,
+            region=response.region
+        )
+
+        db.add(new_response)
+
+    db.commit()
+
+    return {
+        "message": "Responses saved successfully",
+        "count": len(batch.responses)
+    }
+
+# Receives an engagement event from the SDK and stores it in the database.
+@app.post("/engagement-events")
+def save_engagement_event(
+    event: EngagementEventCreate,
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(Survey.id == event.survey_id).first()
+
+    if survey is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Survey not found"
+        )
+
+    new_event = EngagementEvent(
+        survey_id=event.survey_id,
+        event_type=event.event_type
+    )
+
+    db.add(new_event)
+    db.commit()
+    db.refresh(new_event)
+
+    return {
+        "id": new_event.id,
+        "survey_id": new_event.survey_id,
+        "event_type": new_event.event_type,
+        "message": "Engagement event saved successfully"
+    }
+
+# Counts how many times each answer option was selected.
+@app.get("/analytics/results/{survey_id}")
+def get_survey_results(
+    survey_id: int,
+    db: Session = Depends(get_db)
+):
+    results = (
+        db.query(
+            SurveyOption.id,
+            SurveyOption.text,
+            func.count(Response.id).label("count")
+        )
+        .join(Response, Response.option_id == SurveyOption.id, isouter=True)
+        .join(Question, Question.id == SurveyOption.question_id)
+        .filter(Question.survey_id == survey_id)
+        .group_by(SurveyOption.id, SurveyOption.text)
+        .all()
+    )
+
+    return {
+        "survey_id": survey_id,
+        "results": [
+            {
+                "option_id": option_id,
+                "option_text": option_text,
+                "count": count
+            }
+            for option_id, option_text, count in results
+        ]
+    }
+
+# Returns geographic distribution of responses for a specific survey.
+# Only responses that include a region are counted.
+@app.get("/analytics/regions/{survey_id}")
+def get_region_analytics(
+    survey_id: int,
+    db: Session = Depends(get_db)
+):
+    results = (
+        db.query(
+            Response.region,
+            func.count(Response.id).label("count")
+        )
+        .filter(Response.survey_id == survey_id)
+        .filter(Response.region.isnot(None))
+        .group_by(Response.region)
+        .all()
+    )
+
+    return {
+        "survey_id": survey_id,
+        "regions": [
+            {
+                "region": region,
+                "count": count
+            }
+            for region, count in results
+        ]
+    }
+
+
+# Returns engagement analytics for a specific survey.
+@app.get("/analytics/engagement/{survey_id}")
+def get_engagement_analytics(
+    survey_id: int,
+    db: Session = Depends(get_db)
+):
+    opened_count = (
+        db.query(func.count(EngagementEvent.id))
+        .filter(EngagementEvent.survey_id == survey_id)
+        .filter(EngagementEvent.event_type == "opened")
+        .scalar()
+    )
+
+    completed_count = (
+        db.query(func.count(EngagementEvent.id))
+        .filter(EngagementEvent.survey_id == survey_id)
+        .filter(EngagementEvent.event_type == "completed")
+        .scalar()
+    )
+
+    abandoned_count = (
+        db.query(func.count(EngagementEvent.id))
+        .filter(EngagementEvent.survey_id == survey_id)
+        .filter(EngagementEvent.event_type == "abandoned")
+        .scalar()
+    )
+
+    if opened_count == 0:
+        completion_rate = 0
+    else:
+        completion_rate = (completed_count / opened_count) * 100
+
+    return {
+        "survey_id": survey_id,
+        "opened": opened_count,
+        "completed": completed_count,
+        "abandoned": abandoned_count,
+        "completion_rate": completion_rate
+    }
+
+# This endpoint updates only the survey title and status.
+@app.put("/surveys/{survey_id}")
+def update_survey(
+    survey_id: int,
+    survey_update: SurveyUpdate,
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+
+    if survey is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Survey not found"
+        )
+
+    survey.title = survey_update.title
+    survey.status = survey_update.status
+
+    db.commit()
+    db.refresh(survey)
+
+    return {
+        "id": survey.id,
+        "title": survey.title,
+        "status": survey.status,
+        "message": "Survey updated successfully"
+    }
+
+# Publishes an existing survey by changing its status to active.
+@app.put("/surveys/{survey_id}/publish")
+def publish_survey(
+    survey_id: int,
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+
+    if survey is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Survey not found"
+        )
+
+    survey.status = "active"
+
+    db.commit()
+    db.refresh(survey)
+
+    return {
+        "id": survey.id,
+        "title": survey.title,
+        "status": survey.status,
+        "message": "Survey published successfully"
+    }
+
+
+# Marks an existing survey as done instead of deleting it permanently.
+# This keeps historical data and analytics available.
+@app.delete("/surveys/{survey_id}")
+def delete_survey(
+    survey_id: int,
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+
+    if survey is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Survey not found"
+        )
+
+    survey.status = "done"
+
+    db.commit()
+    db.refresh(survey)
+
+    return {
+        "id": survey.id,
+        "title": survey.title,
+        "status": survey.status,
+        "message": "Survey marked as done successfully"
+    }

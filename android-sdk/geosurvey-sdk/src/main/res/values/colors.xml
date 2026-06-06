@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="errorRed">#E53935</color>
+    <color name="questionBlack">#1A1A1A</color>
+</resources>
