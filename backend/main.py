@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text, func
 
@@ -7,6 +8,15 @@ from models import Survey, Question, SurveyOption, Response, EngagementEvent
 from schemas import SurveyCreate, ResponseBatchCreate, SurveyUpdate, EngagementEventCreate
 
 app = FastAPI(title="GeoSurvey API")
+
+# CORS configuration to allow requests from the frontend running on localhost:5173
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/")
@@ -27,6 +37,24 @@ def db_test():
         "time": str(current_time)
     }
 
+def normalize_region(region):
+    if region is None or region == "Unknown":
+        return "Unknown"
+
+    if region == "Center District":
+        return "Center"
+
+    if region == "Northern District":
+        return "North"
+
+    if region == "Southern District":
+        return "South"
+
+    if region == "Jerusalem District":
+        return "Jerusalem"
+
+    return "Unknown"
+
 # Creates a new survey with its questions and answer options.
 # stores it in PostgreSQL, and returns the created survey details.
 @app.post("/surveys")
@@ -36,7 +64,8 @@ def create_survey(
 ):
     new_survey = Survey(
         title=survey.title,
-        status=survey.status
+        status=survey.status,
+        location_enabled=survey.location_enabled
     )
 
     for question_index, question in enumerate(survey.questions):
@@ -61,10 +90,11 @@ def create_survey(
     db.refresh(new_survey)
 
     return {
-        "id": new_survey.id,
-        "title": new_survey.title,
-        "status": new_survey.status,
-        "message": "Survey created successfully"
+    "id": new_survey.id,
+    "title": new_survey.title,
+    "status": new_survey.status,
+    "location_enabled": new_survey.location_enabled,
+    "message": "Survey created successfully"
     }
 
 # Returns all surveys for the developer portal.
@@ -79,6 +109,7 @@ def get_all_surveys(
             "id": survey.id,
             "title": survey.title,
             "status": survey.status,
+            "location_enabled": survey.location_enabled,
             "created_at": survey.created_at
         }
         for survey in surveys
@@ -108,6 +139,7 @@ def get_survey(
         "id": survey.id,
         "title": survey.title,
         "status": survey.status,
+        "location_enabled": survey.location_enabled,
         "questions": [
             {
                 "id": question.id,
@@ -279,6 +311,150 @@ def get_engagement_analytics(
         "completed": completed_count,
         "abandoned": abandoned_count,
         "completion_rate": completion_rate
+    }
+
+# Returns all analytics data for the developer portal dashboard
+@app.get("/analytics/surveys/{survey_id}/dashboard")
+def get_survey_dashboard(
+    survey_id: int,
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+
+    if survey is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Survey not found"
+        )
+
+    opened_count = (
+        db.query(func.count(EngagementEvent.id))
+        .filter(EngagementEvent.survey_id == survey_id)
+        .filter(EngagementEvent.event_type == "opened")
+        .scalar()
+    )
+
+    completed_count = (
+        db.query(func.count(EngagementEvent.id))
+        .filter(EngagementEvent.survey_id == survey_id)
+        .filter(EngagementEvent.event_type == "completed")
+        .scalar()
+    )
+
+    abandoned_count = (
+        db.query(func.count(EngagementEvent.id))
+        .filter(EngagementEvent.survey_id == survey_id)
+        .filter(EngagementEvent.event_type == "abandoned")
+        .scalar()
+    )
+
+    completion_rate = 0
+    if opened_count > 0:
+        completion_rate = (completed_count / opened_count) * 100
+
+    total_responses = (
+        db.query(func.count(Response.id))
+        .filter(Response.survey_id == survey_id)
+        .scalar()
+    )
+
+    region_results = (
+        db.query(
+            Response.region,
+            func.count(Response.id).label("count")
+        )
+        .filter(Response.survey_id == survey_id)
+        .filter(Response.region.isnot(None))
+        .group_by(Response.region)
+        .all()
+    )
+
+    geo_enabled = survey.location_enabled
+
+    question_results = (
+        db.query(
+            Question.id,
+            Question.text,
+            SurveyOption.id,
+            SurveyOption.text,
+            func.count(Response.id).label("count")
+        )
+        .join(SurveyOption, SurveyOption.question_id == Question.id)
+        .join(Response, Response.option_id == SurveyOption.id, isouter=True)
+        .filter(Question.survey_id == survey_id)
+        .group_by(
+            Question.id,
+            Question.text,
+            SurveyOption.id,
+            SurveyOption.text
+        )
+        .all()
+    )
+
+    questions_map = {}
+
+    for question_id, question_text, option_id, option_text, count in question_results:
+        if question_id not in questions_map:
+            questions_map[question_id] = {
+                "question_id": question_id,
+                "question_text": question_text,
+                "options": []
+            }
+
+        region_counts = (
+            db.query(
+                Response.region,
+                func.count(Response.id).label("count")
+            )
+            .filter(Response.survey_id == survey_id)
+            .filter(Response.option_id == option_id)
+            .filter(Response.region.isnot(None))
+            .group_by(Response.region)
+            .all()
+        )
+
+        by_region = {
+            "Center": 0,
+            "North": 0,
+            "South": 0,
+            "Jerusalem": 0
+        }
+
+        for region, region_count in region_counts:
+            normalized_region = normalize_region(region)
+
+            if normalized_region in by_region:
+                by_region[normalized_region] += region_count
+
+        questions_map[question_id]["options"].append({
+            "option_id": option_id,
+            "option_text": option_text,
+            "count": count,
+            "by_region": by_region
+        })
+
+    return {
+        "survey": {
+            "id": survey.id,
+            "title": survey.title,
+            "status": survey.status
+        },
+        "summary": {
+            "total_responses": total_responses,
+            "opened": opened_count,
+            "completed": completed_count,
+            "abandoned": abandoned_count,
+            "completion_rate": completion_rate
+        },
+        "geo_enabled": geo_enabled,
+        "regions": [
+            {
+                "region": region,
+                "count": count
+            }
+            for region, count in region_results
+        ],
+        "questions": list(questions_map.values())
     }
 
 # This endpoint updates only the survey title and status.

@@ -15,6 +15,7 @@ class QuestionCreate(BaseModel):
 class SurveyCreate(BaseModel):
     title: str
     status: Literal["draft", "active", "done"] = "draft"
+    location_enabled: bool = False
     questions: list[QuestionCreate]
 
 # Represents a single answer selected by the user.

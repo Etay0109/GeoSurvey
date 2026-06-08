@@ -1,12 +1,30 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
 }
 
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { load(it) }
+    }
+}
+
+val geoSurveyBaseUrl =
+    localProperties.getProperty("GEOSURVEY_BASE_URL") ?: "http://10.0.2.2:8000/"
+
+
+
 android {
     namespace = "com.example.geosurveydemo"
     compileSdk {
         version = release(36)
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     defaultConfig {
@@ -17,6 +35,12 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField(
+            "String",
+            "GEOSURVEY_BASE_URL",
+            "\"$geoSurveyBaseUrl\""
+        )
     }
 
     buildTypes {

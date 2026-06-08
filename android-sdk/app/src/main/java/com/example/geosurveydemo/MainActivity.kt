@@ -13,13 +13,13 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
         SurveySdk.initialize(
-            baseUrl = "http://10.0.2.2:8000/",
+            baseUrl = BuildConfig.GEOSURVEY_BASE_URL,
             enableLocation = true
         )
 
         SurveySdk.showSurvey(
             context = this,
-            surveyId = 3
+            surveyId = 6
         )
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())

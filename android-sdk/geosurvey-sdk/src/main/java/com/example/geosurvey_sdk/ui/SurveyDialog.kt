@@ -26,8 +26,6 @@ import com.example.geosurvey_sdk.SurveySdk
 import com.example.geosurvey_sdk.location.GeoSurveyLocationManager
 import android.Manifest
 import androidx.activity.result.contract.ActivityResultContracts
-import android.util.Log
-
 class SurveyDialog : DialogFragment() {
 
     private var surveyId: Int = 0
@@ -38,7 +36,7 @@ class SurveyDialog : DialogFragment() {
     private var surveyCompleted = false
     private var currentRegion: String? = null
 
-    private val selectedAnswers = mutableMapOf<Int, Int>()
+    private val selectedAnswers = mutableMapOf<Int, MutableSet<Int>>()
 
     private var _binding: DialogSurveyBinding? = null
     private val binding get() = _binding!!
@@ -50,10 +48,9 @@ class SurveyDialog : DialogFragment() {
                 val locationManager = GeoSurveyLocationManager(requireContext())
                 locationManager.getCurrentRegion { region ->
                     currentRegion = region
-                    Log.d("GeoSurvey", "Current region after permission: $region")
                 }
             } else {
-                currentRegion = null
+                currentRegion = "Unknown"
             }
         }
 
@@ -87,7 +84,7 @@ class SurveyDialog : DialogFragment() {
             val question = currentSurvey.questions[currentQuestionIndex]
 
             // Block next if no answer selected
-            if (selectedAnswers[question.id] == null) {
+            if (selectedAnswers[question.id].isNullOrEmpty()) {
                 binding.tvQuestion.setTextColor(ContextCompat.getColor(requireContext(), R.color.errorRed))
                 return@setOnClickListener
             }
@@ -125,7 +122,6 @@ class SurveyDialog : DialogFragment() {
                         if (locationManager.hasLocationPermission()) {
                             locationManager.getCurrentRegion { region ->
                                 currentRegion = region
-                                Log.d("GeoSurvey", "Current region: $region")
                             }
                         } else {
                             locationPermissionLauncher.launch(
@@ -180,10 +176,25 @@ class SurveyDialog : DialogFragment() {
             )
 
             optionBinding.tvOptionText.text = option.text
-            optionBinding.radioBtn.isChecked = selectedAnswers[question.id] == option.id
+
+            val selectedSet = selectedAnswers[question.id] ?: mutableSetOf()
+            optionBinding.radioBtn.isChecked = selectedSet.contains(option.id)
 
             optionBinding.root.setOnClickListener {
-                selectedAnswers[question.id] = option.id
+                if (question.type == "radio") {
+                    selectedAnswers[question.id] = mutableSetOf(option.id)
+                } else if (question.type == "checkbox") {
+                    val currentSelected = selectedAnswers[question.id] ?: mutableSetOf()
+
+                    if (currentSelected.contains(option.id)) {
+                        currentSelected.remove(option.id)
+                    } else {
+                        currentSelected.add(option.id)
+                    }
+
+                    selectedAnswers[question.id] = currentSelected
+                }
+
                 renderOptions(question)
             }
 
@@ -245,13 +256,15 @@ class SurveyDialog : DialogFragment() {
     private fun saveResponsesLocally() {
         val currentSurvey = survey ?: return
 
-        val answers = selectedAnswers.map { entry ->
-            ResponseAnswerDto(
-                survey_id = currentSurvey.id,
-                question_id = entry.key,
-                option_id = entry.value,
-                region = currentRegion
-            )
+        val answers = selectedAnswers.flatMap { entry ->
+            entry.value.map { optionId ->
+                ResponseAnswerDto(
+                    survey_id = currentSurvey.id,
+                    question_id = entry.key,
+                    option_id = optionId,
+                    region = currentRegion ?: "Unknown"
+                )
+            }
         }
 
         val request = ResponseBatchRequest(
@@ -261,8 +274,6 @@ class SurveyDialog : DialogFragment() {
         val storage = LocalResponseStorage(requireContext())
         storage.savePendingResponses(request)
 
-        val saved = storage.getPendingResponses()
-        Log.d("GeoSurvey", "Saved locally: $saved")
     }
 
     // Attempts to send locally saved responses to the server.
