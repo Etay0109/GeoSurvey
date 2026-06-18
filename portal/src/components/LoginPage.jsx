@@ -1,21 +1,22 @@
 import { useState } from 'react'
 import './LoginPage.css'
+import { API_URL } from '../config'
 
 function LoginPage({ onLogin, onGoRegister }) {
-  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
   const handleLogin = () => {
-    if (!name.trim() || !password.trim()) {
-      alert('Please enter username and password')
+    if (!email.trim() || !password.trim()) {
+      alert('Please enter email and password')
       return
     }
 
-    fetch('http://127.0.0.1:8000/developers/login', {
+    fetch(`${API_URL}/developers/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name,
+        email,
         password
     }),
 
@@ -54,7 +55,7 @@ function LoginPage({ onLogin, onGoRegister }) {
           <h2 className="login-card-title">Welcome</h2>
           <p className="login-card-sub">Login to manage your surveys</p>
 
-          <label className="login-label">Username</label>
+          <label className="login-label">Email</label>
           <div className="login-input-wrapper">
             <svg className="login-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -62,10 +63,10 @@ function LoginPage({ onLogin, onGoRegister }) {
             </svg>
             <input
               className="login-input"
-              type="text"
-              placeholder="Enter username"
-              value={name}
-              onChange={e => setName(e.target.value)}
+              type="email"
+              placeholder="Enter email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
             />
           </div>
 

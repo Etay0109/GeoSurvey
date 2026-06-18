@@ -99,7 +99,7 @@ def developer_login(
 ):
     existing_developer = (
         db.query(Developer)
-        .filter(Developer.name == developer.name)
+        .filter(Developer.email == developer.email)
         .first()
     )
 
@@ -274,6 +274,14 @@ def save_responses(
     batch: ResponseBatchCreate,
     db: Session = Depends(get_db)
 ):
+    if not batch.responses:
+        return {
+            "message": "No responses to save",
+            "count": 0
+        }
+
+    survey_id = batch.responses[0].survey_id
+
     for response in batch.responses:
         new_response = Response(
             survey_id=response.survey_id,
@@ -284,12 +292,12 @@ def save_responses(
 
         db.add(new_response)
 
-        summary = get_or_create_summary(
-            db,
-            response.survey_id
-        )
+    summary = get_or_create_summary(
+        db,
+        survey_id
+    )
 
-        summary.total_responses += 1
+    summary.total_responses += 1
 
     db.commit()
 

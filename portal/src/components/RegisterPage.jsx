@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './RegisterPage.css'
+import { API_URL } from '../config'
 
 export default function RegisterPage({ onRegister, onGoLogin }) {
   const [name, setName]             = useState('')
@@ -17,7 +18,7 @@ export default function RegisterPage({ onRegister, onGoLogin }) {
       return
     }
 
-    fetch('http://127.0.0.1:8000/developers/register', {
+    fetch(`${API_URL}/developers/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -30,9 +31,13 @@ export default function RegisterPage({ onRegister, onGoLogin }) {
         const data = await r.json()
 
         if (!r.ok) {
-            alert(data.detail || 'Register failed')
-            return
-        }
+          const message = Array.isArray(data.detail)
+          ? data.detail.map(error => error.msg).join('\n')
+          : data.detail || 'Register failed'
+
+        alert(message)
+        return
+      }
 
         localStorage.setItem('developer', JSON.stringify(data))
         onRegister(data)
