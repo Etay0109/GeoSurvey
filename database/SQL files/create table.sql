@@ -38,11 +38,20 @@ CREATE TABLE engagement_events (
     created_at  TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_responses_survey
-ON responses(survey_id);
+CREATE TABLE developers (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
 
-CREATE INDEX idx_responses_region
-ON responses(region);
 
-CREATE INDEX idx_responses_created
-ON responses(created_at);
+CREATE TABLE survey_analytics_summary (
+    id SERIAL PRIMARY KEY,
+    survey_id INT NOT NULL UNIQUE REFERENCES surveys(id) ON DELETE CASCADE,
+    opened_count INT NOT NULL DEFAULT 0,
+    completed_count INT NOT NULL DEFAULT 0,
+    abandoned_count INT NOT NULL DEFAULT 0,
+    total_responses INT NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
