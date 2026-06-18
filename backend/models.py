@@ -5,6 +5,20 @@ from sqlalchemy.sql import func
 
 from database import Base
 
+# Represents a developer in the database.
+class Developer(Base):
+    __tablename__ = "developers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    email = Column(String(255), nullable=False, unique=True, index=True)
+    password = Column(String(255), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+    surveys = relationship(
+        "Survey",
+        back_populates="developer"
+    )
 
 # Represents a survey stored in the database.
 class Survey(Base):
@@ -15,6 +29,17 @@ class Survey(Base):
     status = Column(String(10), nullable=False)
     location_enabled = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, server_default=func.now())
+
+    developer_id = Column(
+        Integer,
+        ForeignKey("developers.id"),
+        nullable=True
+    )
+
+    developer = relationship(
+        "Developer",
+        back_populates="surveys"
+    )
 
     questions = relationship(
         "Question",
@@ -107,3 +132,27 @@ class EngagementEvent(Base):
 
     event_type = Column(String(15), nullable=False)
     created_at = Column(DateTime, server_default=func.now())
+
+# Stores pre-calculated analytics numbers for each survey.
+class SurveyAnalyticsSummary(Base):
+    __tablename__ = "survey_analytics_summary"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    survey_id = Column(
+        Integer,
+        ForeignKey("surveys.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True
+    )
+
+    opened_count = Column(Integer, nullable=False, default=0)
+    completed_count = Column(Integer, nullable=False, default=0)
+    abandoned_count = Column(Integer, nullable=False, default=0)
+    total_responses = Column(Integer, nullable=False, default=0)
+
+    updated_at = Column(
+        DateTime,
+        server_default=func.now(),
+        onupdate=func.now()
+    )

@@ -2,17 +2,38 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text, func
+from passlib.context import CryptContext
 
 from database import engine, get_db
-from models import Survey, Question, SurveyOption, Response, EngagementEvent
-from schemas import SurveyCreate, ResponseBatchCreate, SurveyUpdate, EngagementEventCreate
+from models import Survey, Question, SurveyOption, Response, EngagementEvent, Developer, SurveyAnalyticsSummary
+from schemas import SurveyCreate, ResponseBatchCreate, SurveyUpdate, EngagementEventCreate, DeveloperLogin, DeveloperRegister
 
 app = FastAPI(title="GeoSurvey API")
+
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto"
+)
+
+def hash_password(password: str):
+    return pwd_context.hash(password)
+
+def verify_password(
+    plain_password: str,
+    hashed_password: str
+):
+    return pwd_context.verify(
+        plain_password,
+        hashed_password
+    )
 
 # CORS configuration to allow requests from the frontend running on localhost:5173
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,6 +58,72 @@ def db_test():
         "time": str(current_time)
     }
 
+@app.post("/developers/register")
+def developer_register(
+    developer: DeveloperRegister,
+    db: Session = Depends(get_db)
+):
+    existing_developer = (
+        db.query(Developer)
+        .filter(Developer.email == developer.email)
+        .first()
+    )
+
+    if existing_developer:
+        raise HTTPException(
+            status_code=400,
+            detail="Developer with this email already exists"
+        )
+
+    new_developer = Developer(
+        name=developer.name,
+        email=developer.email,
+        password=hash_password(developer.password)
+    )
+
+    db.add(new_developer)
+    db.commit()
+    db.refresh(new_developer)
+
+    return {
+        "id": new_developer.id,
+        "name": new_developer.name,
+        "email": new_developer.email
+    }
+
+
+@app.post("/developers/login")
+def developer_login(
+    developer: DeveloperLogin,
+    db: Session = Depends(get_db)
+):
+    existing_developer = (
+        db.query(Developer)
+        .filter(Developer.name == developer.name)
+        .first()
+    )
+
+    if existing_developer is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid name or password"
+        )
+
+    if not verify_password(
+        developer.password,
+        existing_developer.password
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid name or password"
+        )
+
+    return {
+        "id": existing_developer.id,
+        "name": existing_developer.name,
+        "email": existing_developer.email
+    }
+
 def normalize_region(region):
     if region is None or region == "Unknown":
         return "Unknown"
@@ -55,6 +142,20 @@ def normalize_region(region):
 
     return "Unknown"
 
+def get_or_create_summary(db: Session, survey_id: int):
+    summary = (
+        db.query(SurveyAnalyticsSummary)
+        .filter(SurveyAnalyticsSummary.survey_id == survey_id)
+        .first()
+    )
+
+    if summary is None:
+        summary = SurveyAnalyticsSummary(survey_id=survey_id)
+        db.add(summary)
+        db.flush()
+
+    return summary
+
 # Creates a new survey with its questions and answer options.
 # stores it in PostgreSQL, and returns the created survey details.
 @app.post("/surveys")
@@ -65,7 +166,8 @@ def create_survey(
     new_survey = Survey(
         title=survey.title,
         status=survey.status,
-        location_enabled=survey.location_enabled
+        location_enabled=survey.location_enabled,
+        developer_id=survey.developer_id
     )
 
     for question_index, question in enumerate(survey.questions):
@@ -94,15 +196,21 @@ def create_survey(
     "title": new_survey.title,
     "status": new_survey.status,
     "location_enabled": new_survey.location_enabled,
+    "developer_id": new_survey.developer_id,
     "message": "Survey created successfully"
     }
 
 # Returns all surveys for the developer portal.
 @app.get("/surveys")
 def get_all_surveys(
+    developer_id: int,
     db: Session = Depends(get_db)
 ):
-    surveys = db.query(Survey).all()
+    surveys = (
+        db.query(Survey)
+        .filter(Survey.developer_id == developer_id)
+        .all()
+    )
 
     return [
         {
@@ -110,7 +218,8 @@ def get_all_surveys(
             "title": survey.title,
             "status": survey.status,
             "location_enabled": survey.location_enabled,
-            "created_at": survey.created_at
+            "created_at": survey.created_at,
+            "developer_id": survey.developer_id
         }
         for survey in surveys
     ]
@@ -175,6 +284,13 @@ def save_responses(
 
         db.add(new_response)
 
+        summary = get_or_create_summary(
+            db,
+            response.survey_id
+        )
+
+        summary.total_responses += 1
+
     db.commit()
 
     return {
@@ -202,6 +318,16 @@ def save_engagement_event(
     )
 
     db.add(new_event)
+
+    summary = get_or_create_summary(db, event.survey_id)
+
+    if event.event_type == "opened":
+        summary.opened_count += 1
+    elif event.event_type == "completed":
+        summary.completed_count += 1
+    elif event.event_type == "abandoned":
+        summary.abandoned_count += 1
+
     db.commit()
     db.refresh(new_event)
 
@@ -279,26 +405,11 @@ def get_engagement_analytics(
     survey_id: int,
     db: Session = Depends(get_db)
 ):
-    opened_count = (
-        db.query(func.count(EngagementEvent.id))
-        .filter(EngagementEvent.survey_id == survey_id)
-        .filter(EngagementEvent.event_type == "opened")
-        .scalar()
-    )
+    summary = get_or_create_summary(db, survey_id)
 
-    completed_count = (
-        db.query(func.count(EngagementEvent.id))
-        .filter(EngagementEvent.survey_id == survey_id)
-        .filter(EngagementEvent.event_type == "completed")
-        .scalar()
-    )
-
-    abandoned_count = (
-        db.query(func.count(EngagementEvent.id))
-        .filter(EngagementEvent.survey_id == survey_id)
-        .filter(EngagementEvent.event_type == "abandoned")
-        .scalar()
-    )
+    opened_count = summary.opened_count
+    completed_count = summary.completed_count
+    abandoned_count = summary.abandoned_count
 
     if opened_count == 0:
         completion_rate = 0
@@ -327,36 +438,16 @@ def get_survey_dashboard(
             detail="Survey not found"
         )
 
-    opened_count = (
-        db.query(func.count(EngagementEvent.id))
-        .filter(EngagementEvent.survey_id == survey_id)
-        .filter(EngagementEvent.event_type == "opened")
-        .scalar()
-    )
+    summary = get_or_create_summary(db, survey_id)
 
-    completed_count = (
-        db.query(func.count(EngagementEvent.id))
-        .filter(EngagementEvent.survey_id == survey_id)
-        .filter(EngagementEvent.event_type == "completed")
-        .scalar()
-    )
-
-    abandoned_count = (
-        db.query(func.count(EngagementEvent.id))
-        .filter(EngagementEvent.survey_id == survey_id)
-        .filter(EngagementEvent.event_type == "abandoned")
-        .scalar()
-    )
+    opened_count = summary.opened_count
+    completed_count = summary.completed_count
+    abandoned_count = summary.abandoned_count
+    total_responses = summary.total_responses
 
     completion_rate = 0
     if opened_count > 0:
         completion_rate = (completed_count / opened_count) * 100
-
-    total_responses = (
-        db.query(func.count(Response.id))
-        .filter(Response.survey_id == survey_id)
-        .scalar()
-    )
 
     region_results = (
         db.query(

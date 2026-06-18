@@ -116,7 +116,7 @@ class SurveyDialog : DialogFragment() {
                     currentQuestionIndex = 0
 
                     trackEngagementEvent("opened")
-                    if (SurveySdk.isLocationEnabled()) {
+                    if (SurveySdk.isLocationEnabled() && loadedSurvey.location_enabled) {
                         val locationManager = GeoSurveyLocationManager(requireContext())
 
                         if (locationManager.hasLocationPermission()) {

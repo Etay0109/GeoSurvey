@@ -1,6 +1,15 @@
 from pydantic import BaseModel
 from typing import Literal
 
+class DeveloperRegister(BaseModel):
+    name: str
+    email: str
+    password: str
+
+
+class DeveloperLogin(BaseModel):
+    name: str
+    password: str
 
 class OptionCreate(BaseModel):
     text: str
@@ -16,6 +25,7 @@ class SurveyCreate(BaseModel):
     title: str
     status: Literal["draft", "active", "done"] = "draft"
     location_enabled: bool = False
+    developer_id: int | None = None
     questions: list[QuestionCreate]
 
 # Represents a single answer selected by the user.

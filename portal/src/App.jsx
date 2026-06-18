@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import './App.css'
+import LoginPage from './components/LoginPage'
+import RegisterPage from './components/RegisterPage'
 
 const REGION_COLORS = {
   Center:    '#4A80F5',
@@ -8,6 +10,7 @@ const REGION_COLORS = {
   Jerusalem: '#F5A623',
 }
 
+// Formats a date string into a readable format.
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
   const date = new Date(dateStr)
@@ -16,6 +19,7 @@ const formatDate = (dateStr) => {
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
+// Displays the region color legend.
 function RegionLegend() {
   return (
     <div className="region-legend">
@@ -29,6 +33,7 @@ function RegionLegend() {
   )
 }
 
+// Displays a bar chart for region statistics.
 function BarChart({ byRegion }) {
   const total = Object.values(byRegion).reduce((sum, v) => sum + v, 0)
   return (
@@ -46,6 +51,7 @@ function BarChart({ byRegion }) {
   )
 }
 
+// Displays a single answer option and its results.
 function OptionCard({ option, showRegion }) {
   return (
     <div className="option-card">
@@ -70,6 +76,7 @@ function OptionCard({ option, showRegion }) {
   )
 }
 
+// Displays a survey question with all its options.
 function QuestionCard({ question, showRegion }) {
   return (
     <section className="question-card">
@@ -83,10 +90,12 @@ function QuestionCard({ question, showRegion }) {
   )
 }
 
+// Displays the survey status badge.
 function StatusBadge({ status }) {
   return <span className={`badge badge-${status.toLowerCase()}`}>{status}</span>
 }
 
+// Displays an ON/OFF toggle switch.
 function Toggle({ checked, onChange }) {
   return (
     <div className={`toggle ${checked ? 'toggle-on' : ''}`} onClick={() => onChange(!checked)}>
@@ -96,6 +105,8 @@ function Toggle({ checked, onChange }) {
 }
 
 // ── Edit Survey Modal ─────────────────────────────────────────────────────────
+
+// Allows editing an existing survey.
 function EditSurveyModal({ survey, onClose, onSave }) {
   const [title, setTitle]   = useState(survey.name)
   const [status, setStatus] = useState(survey.status.toLowerCase())
@@ -206,6 +217,8 @@ function EditSurveyModal({ survey, onClose, onSave }) {
 }
 
 // ── Create Survey Modal ───────────────────────────────────────────────────────
+
+// Allows creating a new survey.
 function CreateSurveyModal({ onClose, onCreate }) {
   const [step, setStep]                       = useState(1)
   const [locationEnabled, setLocationEnabled] = useState(false)
@@ -233,12 +246,13 @@ const updateCurrentQuestion = (patch) => {
 
   setQuestions(nextQuestions)
 }
-
+  // Adds a new answer option to the current question.
   const addOption = () => {
     updateCurrentQuestion({
       options: [...currentQuestion.options, '']
     })
   }
+  // Removes an answer option from the current question.
   const removeOption = (i) => {
   if (currentQuestion.options.length > 2) {
     updateCurrentQuestion({
@@ -248,6 +262,7 @@ const updateCurrentQuestion = (patch) => {
     })
   }
 }
+  // Updates the text of an answer option.
   const updateOption = (i, val) => {
     const nextOptions = [...currentQuestion.options]
     nextOptions[i] = val
@@ -257,6 +272,7 @@ const updateCurrentQuestion = (patch) => {
     })
   }
 
+  // Adds a new question to the survey.
   const addQuestion = () => {
   const nextQuestions = [
     ...questions,
@@ -271,6 +287,7 @@ const updateCurrentQuestion = (patch) => {
   setCurrentQuestionIndex(nextQuestions.length - 1)
 }
 
+// Validates the survey before submission.
 const validateSurvey = () => {
   if (!title.trim()) {
     alert('Please enter a survey title')
@@ -295,7 +312,7 @@ const validateSurvey = () => {
 
   return true
 }
-
+  // Creates and submits a new survey.
   const handleCreate = () => {
   if (!validateSurvey()) return
 
@@ -446,46 +463,80 @@ const validateSurvey = () => {
 }
 
 // ── Main App ─────────────────────────────────────────────────────────────────
+
+// Main component that manages the portal.
 export default function App() {
-  const [selectedId, setSelectedId]           = useState(null)
-  const [surveys, setSurveys]                 = useState([])
-  const [loading, setLoading]                 = useState(true)
+  const [developer, setDeveloper] = useState(() => {
+    const savedDeveloper = localStorage.getItem('developer')
+    return savedDeveloper ? JSON.parse(savedDeveloper) : null
+  })
+
+  const [selectedId, setSelectedId] = useState(null)
+  const [surveys, setSurveys] = useState([])
+  const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showEditModal, setShowEditModal]     = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
 
+  // Loads the list of surveys for the logged-in developer.
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/surveys')
-      .then(r => r.json())
-      .then(data => {
-        const formatted = data.map(s => ({
-          id: s.id, name: s.title, status: s.status, responses: 0,
-          created: formatDate(s.created_at),
-          stats: { opened: 0, completed: 0, abandoned: 0, rate: 0 },
-          hasLocation: s.location_enabled, questions: [],
-        }))
-        setSurveys(formatted)
-        if (formatted.length > 0) setSelectedId(formatted[0].id)
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
-  }, [])
+  if (!developer) {
+    setLoading(false)
+    return
+  }
 
+  setLoading(true)
+
+  fetch(`http://127.0.0.1:8000/surveys?developer_id=${developer.id}`)
+    .then(r => r.json())
+    .then(data => {
+      const formatted = data.map(s => ({
+        id: s.id,
+        name: s.title,
+        status: s.status,
+        responses: 0,
+        created: formatDate(s.created_at),
+        stats: { opened: 0, completed: 0, abandoned: 0, rate: 0 },
+        hasLocation: s.location_enabled,
+        questions: [],
+      }))
+
+      setSurveys(formatted)
+      if (formatted.length > 0) setSelectedId(formatted[0].id)
+      setLoading(false)
+    })
+    .catch(() => setLoading(false))
+}, [developer])
+
+  // Loads dashboard analytics for the selected survey.
   useEffect(() => {
     if (!selectedId) return
     fetch(`http://127.0.0.1:8000/analytics/surveys/${selectedId}/dashboard`)
       .then(r => r.json())
       .then(data => {
-        const totalResponses = data.summary.total_responses || 0
-        const formattedQuestions = data.questions.map(q => ({
-          id: q.question_id,
-          text: q.question_text,
-          options: q.options.map(opt => ({
-            label: opt.option_text,
-            total: totalResponses === 0 ? 0 : Math.round((opt.count / totalResponses) * 100),
-            respondents: opt.count,
-            byRegion: opt.by_region || { Center: 0, North: 0, South: 0, Jerusalem: 0 }
-          }))
-        }))
+        const formattedQuestions = data.questions.map(q => {
+        const questionTotal = q.options.reduce(
+          (sum, opt) => sum + opt.count,
+          0
+      )
+
+      return {
+        id: q.question_id,
+        text: q.question_text,
+        options: q.options.map(opt => ({
+        label: opt.option_text,
+        total: questionTotal === 0
+          ? 0
+          : Math.round((opt.count / questionTotal) * 100),
+        respondents: opt.count,
+        byRegion: opt.by_region || {
+          Center: 0,
+          North: 0,
+          South: 0,
+          Jerusalem: 0
+        }
+      }))
+    }
+  })
         setSurveys(prev => prev.map(s =>
           s.id === selectedId ? {
             ...s,
@@ -505,6 +556,7 @@ export default function App() {
 
   const survey = surveys.find(s => s.id === selectedId)
 
+  // Sends a new survey to the backend.
   const handleCreate = ({ title, questions, locationEnabled }) => {
     fetch('http://127.0.0.1:8000/surveys', {
       method: 'POST',
@@ -513,6 +565,7 @@ export default function App() {
         title,
         status: 'draft',
         location_enabled: locationEnabled,
+        developer_id: developer.id,
         questions: questions.map(q => ({
           text: q.text,
           type: q.answerType === 'single' ? 'radio' : 'checkbox',
@@ -541,6 +594,7 @@ export default function App() {
       .catch(console.error)
   }
 
+  // Saves changes to an existing survey.
   const handleSave = ({ title, status }) => {
     if (!selectedId) return
 
@@ -560,9 +614,43 @@ export default function App() {
       .catch(console.error)
   }
 
-  if (loading) return <div className="empty-state">Loading surveys...</div>
+  const [showRegister, setShowRegister] = useState(false)
 
-  return (
+  if (!developer) {
+    if (showRegister) {
+      return <RegisterPage onRegister={setDeveloper} onGoLogin={() => setShowRegister(false)} />
+    }
+    return <LoginPage onLogin={setDeveloper} onGoRegister={() => setShowRegister(true)} />
+  }
+
+if (loading) return <div className="empty-state">Loading surveys...</div>
+
+return (
+  <div className="app-wrapper">
+
+    <div className="top-bar">
+      <div className="top-bar-user">
+        <div className="top-bar-avatar">
+          {developer.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
+        </div>
+        <div className="top-bar-info">
+          <span className="top-bar-name">{developer.name}</span>
+          <span className="top-bar-role">Admin</span>
+        </div>
+        <div className="top-bar-divider" />
+        <button className="top-bar-logout" onClick={() => {
+          localStorage.removeItem('developer')
+          setDeveloper(null)
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
     <div className="app">
 
       <aside className="sidebar">
@@ -605,14 +693,19 @@ export default function App() {
             <header className="dashboard-header">
               <div>
                 <h2>{survey.name}</h2>
-                <p className="meta">Created {survey.created} · {survey.status}</p>
+                <p className="meta">
+                  Created {survey.created} ·{' '}
+                  <span className={`status-inline status-${survey.status.toLowerCase()}`}>
+                    {survey.status}
+                  </span>
+                </p>
               </div>
               <button className="btn-edit" onClick={() => setShowEditModal(true)}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                 </svg>
-                Edit
+                Edit Survey
               </button>
             </header>
 
@@ -657,5 +750,6 @@ export default function App() {
         />
       )}
     </div>
+  </div>
   )
 }
