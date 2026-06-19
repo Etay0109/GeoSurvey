@@ -106,7 +106,7 @@ def developer_login(
     if existing_developer is None:
         raise HTTPException(
             status_code=401,
-            detail="Invalid name or password"
+            detail="Invalid email or password"
         )
 
     if not verify_password(
@@ -115,7 +115,7 @@ def developer_login(
     ):
         raise HTTPException(
             status_code=401,
-            detail="Invalid name or password"
+            detail="Invalid email or password"
         )
 
     return {

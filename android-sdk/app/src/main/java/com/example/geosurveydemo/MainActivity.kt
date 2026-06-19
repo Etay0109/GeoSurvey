@@ -19,7 +19,7 @@ class MainActivity : AppCompatActivity() {
 
         SurveySdk.showSurvey(
             context = this,
-            surveyId = 9
+            surveyId = 12
         )
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())

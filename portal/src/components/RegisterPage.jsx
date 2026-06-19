@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './RegisterPage.css'
+import GeoSurveyLogo from './GeoSurveyLogo'
 import { API_URL } from '../config'
 
 export default function RegisterPage({ onRegister, onGoLogin }) {
@@ -56,12 +57,7 @@ export default function RegisterPage({ onRegister, onGoLogin }) {
         <div className="register-card">
 
           <div className="register-logo-wrap">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="#4A80F5" strokeWidth="2"/>
-              <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="#4A80F5" strokeWidth="2"/>
-              <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="#4A80F5" strokeWidth="2"/>
-              <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="#4A80F5" strokeWidth="2"/>
-            </svg>
+            <GeoSurveyLogo size={36} />
           </div>
 
           <h2 className="register-title">Join GeoSurvey</h2>

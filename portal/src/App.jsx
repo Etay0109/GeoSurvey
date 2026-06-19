@@ -4,6 +4,7 @@ import LoginPage from './components/LoginPage'
 import RegisterPage from './components/RegisterPage'
 import EditSurveyModal from './components/EditSurveyModal'
 import CreateSurveyModal from './components/CreateSurveyModal'
+import GeoSurveyLogo from './components/GeoSurveyLogo'
 import { API_URL } from './config'
 
 const REGION_COLORS = {
@@ -291,12 +292,7 @@ return (
 
       <aside className="sidebar">
         <div className="logo">
-          <svg className="logo-icon" width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12" stroke="#4A80F5" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M12 3L9 7H15L12 3Z" fill="#4A80F5"/>
-            <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12" stroke="#4A80F5" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M12 21L15 17H9L12 21Z" fill="#4A80F5"/>
-          </svg>
+          <GeoSurveyLogo size={22} />
           GeoSurvey
         </div>
 
