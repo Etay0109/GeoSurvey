@@ -474,8 +474,10 @@ def get_survey_dashboard(
         db.query(
             Question.id,
             Question.text,
+            Question.order,
             SurveyOption.id,
             SurveyOption.text,
+            SurveyOption.order,
             func.count(Response.id).label("count")
         )
         .join(SurveyOption, SurveyOption.question_id == Question.id)
@@ -484,19 +486,32 @@ def get_survey_dashboard(
         .group_by(
             Question.id,
             Question.text,
+            Question.order,
             SurveyOption.id,
-            SurveyOption.text
+            SurveyOption.text,
+            SurveyOption.order
         )
+        .order_by(Question.order, SurveyOption.order)
         .all()
     )
 
     questions_map = {}
 
-    for question_id, question_text, option_id, option_text, count in question_results:
+    for (
+        question_id,
+        question_text,
+        question_order,
+        option_id,
+        option_text,
+        option_order,
+        count
+    ) in question_results:
+
         if question_id not in questions_map:
             questions_map[question_id] = {
                 "question_id": question_id,
                 "question_text": question_text,
+                "question_order": question_order,
                 "options": []
             }
 
@@ -528,9 +543,21 @@ def get_survey_dashboard(
         questions_map[question_id]["options"].append({
             "option_id": option_id,
             "option_text": option_text,
+            "option_order": option_order,
             "count": count,
             "by_region": by_region
         })
+
+    sorted_questions = sorted(
+        questions_map.values(),
+        key=lambda question: question["question_order"]
+    )
+
+    for question in sorted_questions:
+        question["options"] = sorted(
+            question["options"],
+            key=lambda option: option["option_order"]
+        )
 
     return {
         "survey": {
@@ -553,7 +580,7 @@ def get_survey_dashboard(
             }
             for region, count in region_results
         ],
-        "questions": list(questions_map.values())
+        "questions": sorted_questions
     }
 
 # This endpoint updates only the survey title and status.
