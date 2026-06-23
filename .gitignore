@@ -17,3 +17,11 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
+
+# Node.js
+node_modules/
+package-lock.json
+
+# VitePress
+docs/.vitepress/cache/
+docs/.vitepress/dist/
