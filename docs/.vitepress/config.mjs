@@ -7,7 +7,7 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Documentation', link: '/get-started' },
+      { text: 'Documentation', link: '/installation' },
       { text: 'Screenshots', link: '/screenshots' },
       { text: 'GitHub', link: 'https://github.com/Etay0109/GeoSurvey' }
     ],

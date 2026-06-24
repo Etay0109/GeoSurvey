@@ -23,6 +23,7 @@ The ERD illustrates the relationships between surveys, questions, answer options
 | Survey → Question | One survey can contain multiple questions |
 | Question → SurveyOption | One question can contain multiple answer options |
 | Survey → Response | One survey can receive multiple responses |
+| SurveyOption → Response | One answer option can be selected in multiple responses |
 | Survey → EngagementEvent | One survey can generate multiple engagement events |
 | Survey → SurveyAnalyticsSummary | One survey has a single analytics summary record |
 
@@ -36,7 +37,7 @@ Stores developer account information.
 | id | Integer |
 | name | String |
 | email | String |
-| password_hash | String |
+| password | String (hashed password) |
 | created_at | DateTime |
 
 The Developer entity is responsible for authentication and ownership of surveys created through the Developer Portal.
@@ -113,11 +114,13 @@ Stores aggregated analytics data.
 
 | Field | Type |
 |---|---|
+| id | Integer |
 | survey_id | Integer |
 | opened_count | Integer |
 | completed_count | Integer |
 | abandoned_count | Integer |
 | total_responses | Integer |
+| updated_at | DateTime |
 
 
 ## Why This Design?

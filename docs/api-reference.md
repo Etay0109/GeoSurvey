@@ -12,8 +12,6 @@ http://YOUR_SERVER_IP:8000
 
 | Method | Endpoint | Used By | Description |
 |---|---|---|---|
-| `GET` | `/` | Backend | Check if the server is running |
-| `GET` | `/db-test` | Backend | Test PostgreSQL database connection |
 | `POST` | `/developers/register` | Portal | Register a new developer |
 | `POST` | `/developers/login` | Portal | Authenticate developer login |
 | `POST` | `/surveys` | Portal | Create a new survey |
@@ -29,7 +27,6 @@ http://YOUR_SERVER_IP:8000
 | `GET` | `/analytics/engagement/{survey_id}` | Portal | Get engagement metrics |
 | `GET` | `/analytics/surveys/{survey_id}/dashboard` | Portal | Get full dashboard analytics |
 
----
 
 ## Developer Authentication
 
@@ -64,6 +61,8 @@ Example response:
 }
 ```
 
+---
+
 ### Login Developer
 
 ```http
@@ -89,7 +88,6 @@ Example response:
 }
 ```
 
----
 
 ## Survey Endpoints
 
@@ -143,6 +141,8 @@ Example response:
 }
 ```
 
+---
+
 ### Get All Surveys
 
 ```http
@@ -164,6 +164,8 @@ Example response:
 ]
 ```
 
+---
+
 ### Get Survey
 
 ```http
@@ -171,6 +173,8 @@ GET /surveys/9
 ```
 
 Returns a survey only if its status is `active`.
+
+---
 
 ### Publish Survey
 
@@ -189,6 +193,8 @@ Example response:
 }
 ```
 
+---
+
 ### Delete Survey
 
 ```http
@@ -198,7 +204,6 @@ DELETE /surveys/9
 This endpoint does not permanently delete the survey.  
 It marks the survey status as `done`.
 
----
 
 ## Response Endpoints
 
@@ -236,7 +241,6 @@ Example response:
 }
 ```
 
----
 
 ## Engagement Endpoints
 
@@ -278,7 +282,6 @@ Example response:
 }
 ```
 
----
 
 ## Analytics Endpoints
 
@@ -310,6 +313,8 @@ Example response:
 }
 ```
 
+---
+
 ### Regional Analytics
 
 ```http
@@ -330,6 +335,8 @@ Example response:
 }
 ```
 
+---
+
 ### Engagement Analytics
 
 ```http
@@ -348,6 +355,8 @@ Example response:
 }
 ```
 
+---
+
 ### Dashboard Analytics
 
 ```http
@@ -363,12 +372,3 @@ The dashboard endpoint returns:
 | `geo_enabled` | Indicates whether location analytics are enabled |
 | `regions` | Response distribution by region |
 | `questions` | Per-question answer distribution |
-
----
-
-## Health Endpoints
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/` | Checks if the backend server is running |
-| `GET` | `/db-test` | Tests PostgreSQL database connectivity |

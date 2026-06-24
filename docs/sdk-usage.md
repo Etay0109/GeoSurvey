@@ -34,7 +34,6 @@ SurveySdk.initialize(
 | baseUrl | Backend server URL |
 | enableLocation | Enables optional location collection |
 
----
 
 ## Display a Survey
 
@@ -56,7 +55,6 @@ Replace `YOUR_SURVEY_ID` with the ID of a published survey created through the D
 | context | Current Android Activity |
 | surveyId | Survey identifier |
 
----
 
 ## Check Location Status
 
@@ -101,7 +99,6 @@ Users can select multiple options.
 Checkbox Survey
 ```
 
----
 
 ## Location Collection
 
@@ -118,7 +115,6 @@ When disabled:
 - No location permission is requested.
 - Regional analytics are not collected.
 
----
 
 ## Offline Support
 
@@ -129,7 +125,6 @@ If network connectivity is unavailable:
 3. Responses remain stored until the SDK successfully connects to the backend.
 4. Data is automatically synchronized once connectivity is restored.
 
----
 
 ## Survey Lifecycle
 

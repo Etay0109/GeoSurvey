@@ -358,6 +358,6 @@ The backend verifies the password hash during login and never stores plain-text 
 
 ## 🎥 Demo Video
 
-*Demo video coming soon.*
+[![Watch the Demo](https://img.shields.io/badge/YouTube-Watch%20Demo-red?style=for-the-badge&logo=youtube)](https://youtu.be/M8tVrw0B7IY)
 
 

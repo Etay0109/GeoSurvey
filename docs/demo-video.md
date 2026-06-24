@@ -14,15 +14,13 @@ The video will present the complete system workflow:
 
 ## Project Demo
 
-> Demo video will be added here.
+Watch the complete GeoSurvey project demonstration:
 
-<!-- Later, place the video file inside docs/public/videos/demo.mp4 -->
-
-<!-- Then replace the placeholder above with:
-
-<video controls width="100%">
-  <source src="/videos/demo.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
-
--->
+<iframe
+  width="100%"
+  height="600"
+  src="https://www.youtube.com/embed/M8tVrw0B7IY"
+  title="GeoSurvey Demo Video"
+  frameborder="0"
+  allowfullscreen>
+</iframe>
