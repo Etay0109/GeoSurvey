@@ -5,7 +5,36 @@ GeoSurvey is a full-stack survey and analytics platform developed as part of the
 The platform enables developers to integrate interactive surveys into Android applications, collect user responses and geographic data, and analyze results through a dedicated web portal.
 
 ---
+## 📚 Documentation
 
+The project includes a complete VitePress documentation website located in the `docs/` directory.
+
+The documentation covers:
+
+- Installation
+- Get Started
+- Architecture
+- SDK Usage
+- API Reference
+- Database Design
+- Analytics
+- Screenshots
+- Demo Video
+
+To run the documentation locally:
+
+```bash
+npm install
+npm run docs:dev
+```
+
+The documentation will be available at:
+
+```text
+http://localhost:5174
+```
+
+---
 ## ✨ Key Features
 
 - **Android SDK** – Drop-in Kotlin library that any Android app can embed to display surveys as a native dialog
@@ -67,45 +96,63 @@ The ERD below describes the seven tables: `developers`, `surveys`, `questions`, 
 
 ```
 GeoSurveyProject/
-├── backend/
-│   ├── main.py                  # All API endpoints
-│   ├── models.py                # SQLAlchemy ORM models
-│   ├── schemas.py               # Pydantic request/response schemas
-│   ├── database.py              # PostgreSQL connection & session factory
+├── backend/                                  # FastAPI REST API server
+│   ├── main.py                               # All API endpoints (surveys, auth, analytics)
+│   ├── models.py                             # SQLAlchemy ORM models (7 tables)
+│   ├── schemas.py                            # Pydantic request/response schemas
+│   ├── database.py                           # PostgreSQL connection & session factory
 │   ├── requirements.txt
 │   └── seed_data/
-│       ├── seed_election_demo_data.py   # Demo data for election survey
-│       └── seed_news_demo_data.py       # Demo data for news survey
+│       ├── seed_election_demo_data.py        # Demo data — election survey
+│       └── seed_news_demo_data.py            # Demo data — news survey
 │
-├── portal/
+├── portal/                                   # React web dashboard (Vite)
 │   ├── src/
-│   │   ├── App.jsx              # Main dashboard + all analytics UI
-│   │   ├── config.js            # API base URL (reads VITE_API_URL)
+│   │   ├── App.jsx                           # Main dashboard + analytics UI
+│   │   ├── main.jsx                          # React entry point
+│   │   ├── config.js                         # API base URL configuration
 │   │   └── components/
-│   │       ├── LoginPage.jsx
-│   │       ├── RegisterPage.jsx
-│   │       ├── CreateSurveyModal.jsx
-│   │       └── EditSurveyModal.jsx
+│   │       ├── LoginPage.jsx                 # Developer login
+│   │       ├── RegisterPage.jsx              # Developer registration
+│   │       ├── CreateSurveyModal.jsx         # Survey creation modal
+│   │       ├── EditSurveyModal.jsx           # Survey editing modal
+│   │       └── GeoSurveyLogo.jsx             # Logo component
 │   ├── package.json
 │   └── vite.config.js
 │
-├── android-sdk/
-│   ├── app/                              # Demo application
-│   │   └── .../geosurveydemo/
-│   │       └── MainActivity.kt
-│   └── geosurvey-sdk/                    # SDK library module
-│       └── .../geosurvey_sdk/
-│           ├── SurveySdk.kt              # Public API singleton
-│           ├── ui/SurveyDialog.kt        # Native survey dialog
-│           ├── network/
-│           │   ├── RetrofitClient.kt
-│           │   └── SurveyApi.kt
-│           ├── location/GeoSurveyLocationManager.kt
-│           ├── storage/LocalResponseStorage.kt
-│           └── model/                    # DTOs
+├── android-sdk/                              # Kotlin SDK + demo application
+│   ├── app/                                  # Demo app showing SDK integration
+│   │   └── src/main/java/.../geosurveydemo/
+│   │       └── MainActivity.kt               # Demo entry point
+│   ├── geosurvey-sdk/                        # Reusable SDK library module
+│   │   └── src/main/java/.../geosurvey_sdk/
+│   │       ├── SurveySdk.kt                  # Public API singleton (initialize / showSurvey)
+│   │       ├── ui/SurveyDialog.kt            # Native survey dialog fragment
+│   │       ├── network/
+│   │       │   ├── RetrofitClient.kt         # HTTP client setup
+│   │       │   └── SurveyApi.kt              # API interface (Retrofit)
+│   │       ├── location/
+│   │       │   └── GeoSurveyLocationManager.kt  # GPS + region reverse-geocoding
+│   │       ├── storage/
+│   │       │   └── LocalResponseStorage.kt   # Offline-first SharedPreferences cache
+│   │       └── model/                        # Data transfer objects (DTOs)
+│   └── settings.gradle.kts
 │
-└── database/
-    └── SQL files/create_tables.sql       # PostgreSQL DDL
+├── database/
+│   └── SQL files/
+│       └── create_tables.sql                 # PostgreSQL DDL for all 7 tables
+│
+├── docs/                                     # VitePress documentation site
+│   ├── index.md                              # Documentation home
+│   ├── get-started.md
+│   ├── installation.md
+│   ├── architecture.md
+│   ├── api-reference.md
+│   ├── sdk-usage.md
+│   ├── diagrams/                             # Architecture & ERD diagrams
+│   └── screenshots/                          # UI screenshots
+│
+└── README.md
 ```
 
 ---
